@@ -112,3 +112,33 @@ def logout():
 
     # Redirect user to login form
     return redirect("/")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """Register user"""
+
+    if request.method == "GET":
+        return render_template("register.html")
+
+    username = request.form.get("username")
+    password = request.form.get("password")
+    confirmation = request.form.get("confirmation")
+
+    if password != confirmation:
+        return apology("invalid confirmation password", 400)
+
+    rows = db.execute(
+        "SELECT * FROM users WHERE username = ?", request.form.get("username")
+    )
+
+    if len(rows) != 0:
+        return apology("username already exists", 400)
+
+    db.execute(
+        "INSERT INTO users (username, hash) VALUES (?, ?)",
+        username,
+        generate_password_hash(request.form.get("password")),
+    )
+
+    return redirect("/")
