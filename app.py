@@ -64,6 +64,77 @@ def index():
         grand_total=grand_total,
     )
 
+
+@app.route("/buy", methods=["GET", "POST"])
+@login_required
+def buy():
+    """Buy shares of stock"""
+
+    user_id = session["user_id"]
+
+    if request.method == "GET":
+        return render_template("buy.html")
+
+    symbol = request.form.get("symbol")
+
+    quote = lookup(symbol)
+
+    if quote is None:
+        return apology("invalid symbol", 400)
+    else:
+        symbol = quote["symbol"]
+
+    quantity = int(request.form.get("shares"))
+
+    cash = db.execute(
+        "SELECT cash FROM users WHERE id = ? ",
+        user_id,
+    )[0]["cash"]
+
+    cost = quantity * quote["price"]
+    if cost > cash:
+        return apology("can't afford", 400)
+    else:
+        cash -= cost
+
+    rows = db.execute(
+        "SELECT quantity FROM portfolio WHERE user_id = ? AND symbol = ?",
+        user_id,
+        symbol,
+    )
+
+    if len(rows) == 0:
+        db.execute(
+            "INSERT INTO portfolio (user_id, symbol, quantity) VALUES (?, ?, ?)",
+            user_id,
+            symbol,
+            quantity,
+        )
+    else:
+        updated_quantity = int(rows[0]["quantity"]) + quantity
+        db.execute(
+            "UPDATE portfolio SET quantity = ? WHERE user_id = ? AND symbol = ?",
+            updated_quantity,
+            user_id,
+            symbol,
+        )
+
+    db.execute(
+        "INSERT INTO transactions (user_id, symbol, quantity, price) VALUES (?, ?, ?, ?)",
+        user_id,
+        symbol,
+        quantity,
+        quote["price"],
+    )
+
+    db.execute(
+        "UPDATE users SET cash = ? WHERE id = ?",
+        cash,
+        user_id,
+    )
+
+    return redirect("/")
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
