@@ -185,6 +185,25 @@ def logout():
     return redirect("/")
 
 
+@app.route("/quote", methods=["GET", "POST"])
+@login_required
+def quote():
+    """Get stock quote."""
+
+    if request.method == "GET":
+        return render_template("quote.html")
+
+    symbol = request.form.get("symbol")
+
+    quote = lookup(symbol)
+
+    if quote is None:
+        return apology("invalid symbol", 400)
+
+    # Redirect user to quote info page
+    return render_template("quoted.html", quote=quote)
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Register user"""
@@ -210,6 +229,76 @@ def register():
         "INSERT INTO users (username, hash) VALUES (?, ?)",
         username,
         generate_password_hash(request.form.get("password")),
+    )
+
+    return redirect("/")
+
+
+@app.route("/sell", methods=["GET", "POST"])
+@login_required
+def sell():
+    """Sell shares of stock"""
+
+    user_id = session["user_id"]
+
+    shares = db.execute(
+        "SELECT symbol FROM portfolio WHERE user_id = ?",
+        user_id,
+    )
+
+    if request.method == "GET":
+        return render_template("sell.html", shares=shares)
+
+    symbol = request.form.get("symbol")
+    quote = lookup(symbol)
+    quantity = int(request.form.get("shares"))
+
+    row = db.execute(
+        "SELECT quantity FROM portfolio WHERE user_id = ? AND symbol = ?",
+        user_id,
+        symbol,
+    )
+
+    quantity_owned = int(row[0]["quantity"])
+
+    if quantity > quantity_owned:
+        return apology("you don't own that many shares", 400)
+    else:
+        quantity_owned -= quantity
+
+    if quantity_owned == 0:
+        db.execute(
+            "DELETE FROM portfolio WHERE user_id = ? AND symbol = ?",
+            user_id,
+            symbol,
+        )
+    else:
+        db.execute(
+            "UPDATE portfolio SET quantity = ? WHERE user_id = ? AND symbol = ?",
+            quantity_owned,
+            user_id,
+            symbol,
+        )
+
+    db.execute(
+        "INSERT INTO transactions (user_id, symbol, quantity, price) VALUES (?, ?, ?, ?)",
+        user_id,
+        symbol,
+        -quantity,
+        quote["price"],
+    )
+
+    cash = db.execute(
+        "SELECT cash FROM users WHERE id = ? ",
+        user_id,
+    )[0]["cash"]
+
+    received = quantity * quote["price"]
+    cash += received
+    db.execute(
+        "UPDATE users SET cash = ? WHERE id = ?",
+        cash,
+        user_id,
     )
 
     return redirect("/")
