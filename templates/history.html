@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block title %}
+History
+{% endblock %}
+
+{% block main %}
+<h2 class="text-start">History</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th class="text-start">Symbol</th>
+            <th class="text-end">Quantity</th>
+            <th class="text-end">Price</th>
+            <th class="text-end">Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for transaction in transactions %}
+        <tr class="{{ 'table-success' if transaction['quantity'] > 0 else 'table-danger' }}">
+            <td class="text-start">{{ transaction["symbol"] }}</td>
+            <td class="text-end">{{ transaction["quantity"] }}</td>
+            <td class="text-end">{{ transaction["price"] }}</td>
+            <td class="text-end">{{ transaction["timestamp"] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
