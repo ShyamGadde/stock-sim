@@ -1,19 +1,20 @@
 {% extends "base.html" %} {% block title %} Quote {{ quote["symbol"] }} {%
 endblock %} {% block main %}
 <h2>{{ quote["symbol"] }}</h2>
-<p>A share of {{ quote["symbol"] }} costs {{ quote["price"] | usd }} .</p>
+<p>A share of {{ quote["symbol"] }} costs {{ quote["price"] | usd }}</p>
 
 <form method="POST" action="/buy" style="display: inline">
   <input type="hidden" name="symbol" value="{{ quote['symbol'] }}" />
   <input
     type="number"
     name="quantity"
+    placeholder="Number of shares"
+    class="form-control mx-auto w-auto"
     min="1"
     step="1"
     required
-    style="width: 60px"
   />
-  <button class="btn btn-success btn-sm" type="submit">Buy</button>
+  <button class="btn btn-success mt-3" type="submit">Buy</button>
 </form>
 
 {% endblock %}

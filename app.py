@@ -2,7 +2,7 @@ import os
 
 from cs50 import SQL
 from dotenv import load_dotenv
-from flask import Flask, redirect, render_template, request, session
+from flask import Flask, flash, redirect, render_template, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from flask_session import Session
@@ -68,8 +68,104 @@ def index():
         "index.html",
         shares=shares,
         cash=cash,
-        grand_total=grand_total,
+        pnl=grand_total - 10000,
     )
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """Register user"""
+
+    if request.method == "GET":
+        return render_template("register.html")
+
+    username = request.form.get("username")
+    password = request.form.get("password")
+    confirmation = request.form.get("confirmation")
+
+    if password != confirmation:
+        return apology("invalid confirmation password", 400)
+
+    rows = db.execute(
+        "SELECT * FROM users WHERE username = ?", request.form.get("username")
+    )
+
+    if len(rows) != 0:
+        return apology("username already exists", 400)
+
+    db.execute(
+        "INSERT INTO users (username, password) VALUES (?, ?)",
+        username,
+        generate_password_hash(request.form.get("password")),
+    )
+
+    return redirect("/")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """Log user in"""
+
+    # Forget any user_id
+    session.clear()
+
+    if request.method != "POST":
+        return render_template("login.html")
+
+    # Ensure username was submitted
+    if not request.form.get("username"):
+        return apology("must provide username", 403)
+
+    # Ensure password was submitted
+    elif not request.form.get("password"):
+        return apology("must provide password", 403)
+
+    # Query database for username
+    rows = db.execute(
+        "SELECT * FROM users WHERE username = ?", request.form.get("username")
+    )
+
+    # Ensure username exists and password is correct
+    if len(rows) != 1 or not check_password_hash(
+        rows[0]["password"], request.form.get("password")
+    ):
+        return apology("invalid username and/or password", 403)
+
+    # Remember which user has logged in
+    session["user_id"] = rows[0]["id"]
+
+    # Redirect user to home page
+    return redirect("/")
+
+
+@app.route("/logout")
+def logout():
+    """Log user out"""
+
+    # Forget any user_id
+    session.clear()
+
+    # Redirect user to login form
+    return redirect("/")
+
+
+@app.route("/quote", methods=["GET", "POST"])
+@login_required
+def quote():
+    """Get stock quote."""
+
+    if request.method == "GET":
+        return render_template("quote.html")
+
+    symbol = request.form.get("symbol")
+
+    quote = lookup(symbol)
+
+    if quote is None:
+        return apology("invalid symbol", 400)
+
+    # Redirect user to quote info page
+    return render_template("quoted.html", quote=quote)
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -140,115 +236,7 @@ def buy():
         user_id,
     )
 
-    return redirect("/")
-
-
-@app.route("/history")
-@login_required
-def history():
-    """Show history of transactions"""
-
-    user_id = session["user_id"]
-
-    transactions = db.execute(
-        "SELECT * FROM  transactions WHERE user_id = ? ORDER BY timestamp DESC;",
-        user_id,
-    )
-    return render_template("history.html", transactions=transactions)
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    """Log user in"""
-
-    # Forget any user_id
-    session.clear()
-
-    if request.method != "POST":
-        return render_template("login.html")
-
-    # Ensure username was submitted
-    if not request.form.get("username"):
-        return apology("must provide username", 403)
-
-    # Ensure password was submitted
-    elif not request.form.get("password"):
-        return apology("must provide password", 403)
-
-    # Query database for username
-    rows = db.execute(
-        "SELECT * FROM users WHERE username = ?", request.form.get("username")
-    )
-
-    # Ensure username exists and password is correct
-    if len(rows) != 1 or not check_password_hash(
-        rows[0]["password"], request.form.get("password")
-    ):
-        return apology("invalid username and/or password", 403)
-
-    # Remember which user has logged in
-    session["user_id"] = rows[0]["id"]
-
-    # Redirect user to home page
-    return redirect("/")
-
-
-@app.route("/logout")
-def logout():
-    """Log user out"""
-
-    # Forget any user_id
-    session.clear()
-
-    # Redirect user to login form
-    return redirect("/")
-
-
-@app.route("/quote", methods=["GET", "POST"])
-@login_required
-def quote():
-    """Get stock quote."""
-
-    if request.method == "GET":
-        return render_template("quote.html")
-
-    symbol = request.form.get("symbol")
-
-    quote = lookup(symbol)
-
-    if quote is None:
-        return apology("invalid symbol", 400)
-
-    # Redirect user to quote info page
-    return render_template("quoted.html", quote=quote)
-
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    """Register user"""
-
-    if request.method == "GET":
-        return render_template("register.html")
-
-    username = request.form.get("username")
-    password = request.form.get("password")
-    confirmation = request.form.get("confirmation")
-
-    if password != confirmation:
-        return apology("invalid confirmation password", 400)
-
-    rows = db.execute(
-        "SELECT * FROM users WHERE username = ?", request.form.get("username")
-    )
-
-    if len(rows) != 0:
-        return apology("username already exists", 400)
-
-    db.execute(
-        "INSERT INTO users (username, password) VALUES (?, ?)",
-        username,
-        generate_password_hash(request.form.get("password")),
-    )
+    flash("Bought!")
 
     return redirect("/")
 
@@ -320,4 +308,20 @@ def sell():
         user_id,
     )
 
+    flash("Sold!")
+
     return redirect("/")
+
+
+@app.route("/history")
+@login_required
+def history():
+    """Show history of transactions"""
+
+    user_id = session["user_id"]
+
+    transactions = db.execute(
+        "SELECT * FROM  transactions WHERE user_id = ? ORDER BY timestamp DESC;",
+        user_id,
+    )
+    return render_template("history.html", transactions=transactions)
