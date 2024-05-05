@@ -1,56 +1,63 @@
-{% extends "layout.html" %}
-
-{% block title %}
-Portfolio
-{% endblock %}
-
-{% block main %}
+{% extends "base.html" %} {% block title %} Portfolio {% endblock %} {% block
+main %}
 <table class="table table-striped">
-    <thead>
-        <tr>
-            <th class="text-start">Symbol</th>
-            <th class="text-start">Name</th>
-            <th class="text-end">Quantity</th>
-            <th class="text-end">Price/Share</th>
-            <th class="text-end">Total Value</th>
-            <th class="text-center">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for share in shares %}
-        <tr>
-            <td class="text-start">{{ share["symbol"] }}</td>
-            <td class="text-start">{{ share["name"] }}</td>
-            <td class="text-end">{{ share["quantity"] }}</td>
-            <td class="text-end">{{ share["price"] | usd }}</td>
-            <td class="text-end">{{ share["total_value"] | usd }}</td>
-            <td class="text-center">
-                <form method="POST" action="/buy" style="display:inline;">
-                    <input type="hidden" name="symbol" value="{{ share['symbol'] }}">
-                    <input type="number" name="quantity" min="1" step="1" required style="width: 60px;">
-                    <button class="btn btn-success btn-sm" type="submit">Buy</button>
-                </form>
-                <form method="POST" action="/sell" style="display:inline;">
-                    <input type="hidden" name="symbol" value="{{ share['symbol'] }}">
-                    <input type="number" name="quantity" min="1" max="{{ share['quantity'] }}" step="1" required
-                        style="width: 60px;">
-                    <button class="btn btn-danger btn-sm" type="submit">Sell</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-    <tfoot>
-        <tr>
-            <td class="border-0 fw-bold text-end" colspan="4">Cash Left</td>
-            <td class="border-0 text-end">{{ cash | usd }}</td>
-            <td class="border-0"></td>
-        </tr>
-        <tr>
-            <td class="border-0 fw-bold text-end" colspan="4">Grand Total</td>
-            <td class="border-0 w-bold text-end">{{ grand_total | usd }}</td>
-            <td class="border-0"></td>
-        </tr>
-    </tfoot>
+  <thead>
+    <tr>
+      <th class="text-start">Symbol</th>
+      <th class="text-end">Quantity</th>
+      <th class="text-end">Price/Share</th>
+      <th class="text-end">Total Value</th>
+      <th class="text-center">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for share in shares %}
+    <tr>
+      <td class="text-start">{{ share["symbol"] }}</td>
+      <td class="text-end">{{ share["quantity"] }}</td>
+      <td class="text-end">{{ share["price"] | usd }}</td>
+      <td class="text-end">{{ share["total_value"] | usd }}</td>
+      <td class="text-center">
+        <form method="POST" action="/buy" style="display: inline">
+          <input type="hidden" name="symbol" value="{{ share['symbol'] }}" />
+          <input
+            type="number"
+            name="quantity"
+            min="1"
+            step="1"
+            required
+            style="width: 60px"
+          />
+          <button class="btn btn-success btn-sm" type="submit">Buy</button>
+        </form>
+        <form method="POST" action="/sell" style="display: inline">
+          <input type="hidden" name="symbol" value="{{ share['symbol'] }}" />
+          <input
+            type="number"
+            name="quantity"
+            min="1"
+            max="{{ share['quantity'] }}"
+            step="1"
+            required
+            style="width: 60px"
+          />
+          <button class="btn btn-danger btn-sm" type="submit">Sell</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td class="border-0 fw-bold text-end" colspan="4">Cash Left</td>
+      <td class="border-0 text-end">{{ cash | usd }}</td>
+      <td class="border-0"></td>
+    </tr>
+    <tr>
+      <td class="border-0 fw-bold text-end" colspan="4">Grand Total</td>
+      <td class="border-0 w-bold text-end">{{ grand_total | usd }}</td>
+      <td class="border-0"></td>
+    </tr>
+  </tfoot>
 </table>
 {% endblock %}
